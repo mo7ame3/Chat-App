@@ -17,7 +17,7 @@ import com.example.whapp.screen.status.statusList.StatusListScreen
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = AllScreens.SingUpScreen.name) {
+    NavHost(navController = navController, startDestination = AllScreens.ProfileScreen.name) {
         composable(route = AllScreens.SingUpScreen.name) {
             SignUpScreen(navController = navController)
         }
