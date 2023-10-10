@@ -1,11 +1,13 @@
 package com.example.whapp.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.whapp.screen.ChatViewModel
 import com.example.whapp.screen.chat.chatList.ChatListScreen
 import com.example.whapp.screen.chat.singleChat.SingleChatScreen
 import com.example.whapp.screen.login.LoginScreen
@@ -17,9 +19,10 @@ import com.example.whapp.screen.status.statusList.StatusListScreen
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = AllScreens.ProfileScreen.name) {
+    val chatViewModel = hiltViewModel<ChatViewModel>()
+    NavHost(navController = navController, startDestination = AllScreens.SingUpScreen.name) {
         composable(route = AllScreens.SingUpScreen.name) {
-            SignUpScreen(navController = navController)
+            SignUpScreen(navController = navController, chatViewModel = chatViewModel )
         }
         composable(route = AllScreens.LoginScreen.name) {
             LoginScreen(navController = navController)
@@ -52,7 +55,7 @@ fun NavGraph() {
         ) { data ->
             SingleStatusScreen(
                 navController = navController,
-                statusId  = data.arguments?.getString("statusId").toString()
+                statusId = data.arguments?.getString("statusId").toString()
             )
         }
     }
