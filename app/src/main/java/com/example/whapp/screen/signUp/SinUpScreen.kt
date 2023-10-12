@@ -130,7 +130,16 @@ fun SignUpScreen(navController: NavController, chatViewModel: ChatViewModel) {
             )
 
             Button(
-                onClick = { focus.clearFocus(force = true) },
+                onClick = {
+                    focus.clearFocus(force = true)
+                    chatViewModel.onSignup(
+                        name = nameState.value.text,
+                        number = numberState.value.text,
+                        email = emailState.value.text,
+                        password = passwordState.value.text,
+                        navController = navController
+                    )
+                },
                 modifier = Modifier.padding(8.dp)
             ) {
                 Text(text = "SIGN UP")

@@ -7,5 +7,6 @@ enum class AllScreens {
     ChatListScreen,
     SingleChat,
     StatusListScreen,
-    SingleStatusScreen
+    SingleStatusScreen,
+    SplashScreen,
 }
