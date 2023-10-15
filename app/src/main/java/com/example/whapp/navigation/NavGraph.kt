@@ -36,7 +36,7 @@ fun NavGraph() {
             LoginScreen(navController = navController, chatViewModel = chatViewModel)
         }
         composable(route = AllScreens.ProfileScreen.name) {
-            ProfileScreen(navController = navController)
+            ProfileScreen(navController = navController, chatViewModel = chatViewModel)
         }
         composable(route = AllScreens.ChatListScreen.name) {
             ChatListScreen(navController = navController)

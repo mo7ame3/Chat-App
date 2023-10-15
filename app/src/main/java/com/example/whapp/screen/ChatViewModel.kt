@@ -1,5 +1,6 @@
 package com.example.whapp.screen
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -13,18 +14,17 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    val auth: FirebaseAuth,
-    val db: FirebaseFirestore,
-    val storage: FirebaseStorage
+    val auth: FirebaseAuth, val db: FirebaseFirestore, val storage: FirebaseStorage
 ) : ViewModel() {
     val inProgress = mutableStateOf(false)
     val popupNotification = mutableStateOf<Event<String>?>(null)
     private val signedIn = mutableStateOf(false)
-    private val userData = mutableStateOf<UserData?>(null)
+    val userData = mutableStateOf<UserData?>(null)
 
 
     init {
@@ -36,42 +36,36 @@ class ChatViewModel @Inject constructor(
     }
 
     fun onSignup(
-        name: String,
-        number: String,
-        email: String,
-        password: String,
-        navController: NavController
+        name: String, number: String, email: String, password: String, navController: NavController
     ) {
         if (name.isEmpty() || number.isEmpty() || email.isEmpty() || password.isEmpty()) {
             handleException(customMessage = "Please fill in all fields")
             return
         }
         inProgress.value = true
-        db.collection(COLLECTION_USER).whereEqualTo("number", number).get()
-            .addOnSuccessListener {
-                if (it.isEmpty) {
-                    auth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                signedIn.value = true
-                                createOrUpdateProfile(name = name, number = number)
-                                navController.navigate(route = AllScreens.ProfileScreen.name) {
-                                    navController.popBackStack()
-                                    navController.popBackStack()
-                                    navController.popBackStack()
-                                }
-                            } else {
-                                handleException(customMessage = "Signup Failed")
+        db.collection(COLLECTION_USER).whereEqualTo("number", number).get().addOnSuccessListener {
+            if (it.isEmpty) {
+                auth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            signedIn.value = true
+                            createOrUpdateProfile(name = name, number = number)
+                            navController.navigate(route = AllScreens.ProfileScreen.name) {
+                                navController.popBackStack()
+                                navController.popBackStack()
+                                navController.popBackStack()
                             }
+                        } else {
+                            handleException(customMessage = "Signup Failed")
                         }
-                        .addOnFailureListener { exception ->
-                            handleException(exception)
-                        }
-                } else {
-                    handleException(customMessage = "number already exists")
-                }
-                inProgress.value = false
+                    }.addOnFailureListener { exception ->
+                        handleException(exception)
+                    }
+            } else {
+                handleException(customMessage = "number already exists")
             }
+            inProgress.value = false
+        }
     }
 
 
@@ -82,26 +76,24 @@ class ChatViewModel @Inject constructor(
             handleException(customMessage = "please fill in all fields")
             return
         } else {
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        signedIn.value = true
-                        inProgress.value = false
-                        auth.currentUser?.uid?.let {
-                            getUserData(uid = it)
-                        }
-                        navController.navigate(route = AllScreens.ProfileScreen.name) {
-                            navController.popBackStack()
-                            navController.popBackStack()
-                            navController.popBackStack()
-                        }
-                    } else {
-                        handleException(exception = task.exception, customMessage = "Login failed")
+            auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    signedIn.value = true
+                    inProgress.value = false
+                    auth.currentUser?.uid?.let {
+                        getUserData(uid = it)
                     }
+                    navController.navigate(route = AllScreens.ProfileScreen.name) {
+                        navController.popBackStack()
+                        navController.popBackStack()
+                        navController.popBackStack()
+                    }
+                } else {
+                    handleException(exception = task.exception, customMessage = "Login failed")
                 }
-                .addOnFailureListener { exception ->
-                    handleException(exception = exception, customMessage = "Login failed")
-                }
+            }.addOnFailureListener { exception ->
+                handleException(exception = exception, customMessage = "Login failed")
+            }
         }
     }
 
@@ -114,9 +106,7 @@ class ChatViewModel @Inject constructor(
 
 
     private fun createOrUpdateProfile(
-        name: String? = null,
-        number: String? = null,
-        imageUrl: String? = null
+        name: String? = null, number: String? = null, imageUrl: String? = null
     ) {
         val uid = auth.currentUser?.uid
 
@@ -129,45 +119,69 @@ class ChatViewModel @Inject constructor(
 
         uid?.let { letUid ->
             inProgress.value = true
-            db.collection(COLLECTION_USER).document(letUid)
-                .get()
-                .addOnSuccessListener {
-                    if (it.exists()) {
-                        it.reference.update(userDataInCreate.toMap())
-                            .addOnSuccessListener {
-                                inProgress.value = false
-                            }
-                            .addOnFailureListener { exception ->
-                                handleException(exception, "can't update user")
-                            }
-                    } else {
-                        db.collection(COLLECTION_USER).document(letUid).set(userDataInCreate)
+            db.collection(COLLECTION_USER).document(letUid).get().addOnSuccessListener {
+                if (it.exists()) {
+                    it.reference.update(userDataInCreate.toMap()).addOnSuccessListener {
                         inProgress.value = false
-                        getUserData(letUid)
+                    }.addOnFailureListener { exception ->
+                        handleException(exception, "can't update user")
                     }
+                } else {
+                    db.collection(COLLECTION_USER).document(letUid).set(userDataInCreate)
+                    inProgress.value = false
+                    getUserData(letUid)
                 }
-                .addOnFailureListener { exception ->
-                    handleException(exception, "can't retrieve user")
-                }
+            }.addOnFailureListener { exception ->
+                handleException(exception, "can't retrieve user")
+            }
 
         }
 
     }
 
 
+    fun updateProfileData(name: String, number: String) {
+        createOrUpdateProfile(name = name, number = number)
+    }
+
+    private fun uploadImage(uri: Uri, onSuccess: (Uri) -> Unit) {
+        inProgress.value = true
+
+        val storageRef = storage.reference
+        val uuid = UUID.randomUUID()
+        val imageRef = storageRef.child(("image/$uuid"))
+        val uploadTask = imageRef.putFile(uri)
+
+        uploadTask.addOnSuccessListener {
+            val result = it.metadata?.reference?.downloadUrl
+            result?.addOnSuccessListener(onSuccess)
+            inProgress.value = false
+        }
+            .addOnFailureListener {
+                handleException(it)
+            }
+    }
+
+
+    fun uploadProfileImage(uri: Uri) {
+        uploadImage(uri) {
+            createOrUpdateProfile(imageUrl = it.toString())
+        }
+    }
+
+
     private fun getUserData(uid: String) {
         inProgress.value = true
-        db.collection(COLLECTION_USER).document(uid)
-            .addSnapshotListener { value, error ->
-                if (error != null) {
-                    handleException(error, "can't retrieve user data")
-                }
-                if (value != null) {
-                    val user = value.toObject<UserData>()
-                    userData.value = user
-                    inProgress.value = false
-                }
+        db.collection(COLLECTION_USER).document(uid).addSnapshotListener { value, error ->
+            if (error != null) {
+                handleException(error, "can't retrieve user data")
             }
+            if (value != null) {
+                val user = value.toObject<UserData>()
+                userData.value = user
+                inProgress.value = false
+            }
+        }
     }
 
     private fun handleException(exception: Exception? = null, customMessage: String = "") {
