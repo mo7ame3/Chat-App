@@ -49,6 +49,7 @@ fun NavGraph() {
         ) { data ->
             SingleChatScreen(
                 navController = navController,
+                chatViewModel = chatViewModel,
                 chatId = data.arguments?.getString("chatId").toString()
             )
         }
