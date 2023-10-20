@@ -3,17 +3,26 @@ package com.example.whapp.screen
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
+import com.example.whapp.data.COLLECTION_CHAT
+import com.example.whapp.data.COLLECTION_MESSAGES
 import com.example.whapp.data.COLLECTION_USER
+import com.example.whapp.data.ChatDate
+import com.example.whapp.data.ChatUser
 import com.example.whapp.data.Event
+import com.example.whapp.data.Message
 import com.example.whapp.data.UserData
 import com.example.whapp.navigation.AllScreens
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.toObject
+import com.google.firebase.firestore.ktx.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
 
@@ -26,6 +35,11 @@ class ChatViewModel @Inject constructor(
     private val signedIn = mutableStateOf(false)
     val userData = mutableStateOf<UserData?>(null)
 
+    val chats = mutableStateOf<List<ChatDate>>(listOf())
+    val inProgressChat = mutableStateOf(false)
+
+    val chatMessages = mutableStateOf<List<Message>>(listOf())
+    val inProgressChatMessages = mutableStateOf(false)
 
     init {
         val currentUser = auth.currentUser
@@ -45,22 +59,21 @@ class ChatViewModel @Inject constructor(
         inProgress.value = true
         db.collection(COLLECTION_USER).whereEqualTo("number", number).get().addOnSuccessListener {
             if (it.isEmpty) {
-                auth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            signedIn.value = true
-                            createOrUpdateProfile(name = name, number = number)
-                            navController.navigate(route = AllScreens.ProfileScreen.name) {
-                                navController.popBackStack()
-                                navController.popBackStack()
-                                navController.popBackStack()
-                            }
-                        } else {
-                            handleException(customMessage = "Signup Failed")
+                auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        signedIn.value = true
+                        createOrUpdateProfile(name = name, number = number)
+                        navController.navigate(route = AllScreens.ProfileScreen.name) {
+                            navController.popBackStack()
+                            navController.popBackStack()
+                            navController.popBackStack()
                         }
-                    }.addOnFailureListener { exception ->
-                        handleException(exception)
+                    } else {
+                        handleException(customMessage = "Signup Failed")
                     }
+                }.addOnFailureListener { exception ->
+                    handleException(exception)
+                }
             } else {
                 handleException(customMessage = "number already exists")
             }
@@ -102,6 +115,7 @@ class ChatViewModel @Inject constructor(
         signedIn.value = false
         userData.value = null
         popupNotification.value = Event("Logged out")
+        chats.value = listOf()
     }
 
 
@@ -156,10 +170,9 @@ class ChatViewModel @Inject constructor(
             val result = it.metadata?.reference?.downloadUrl
             result?.addOnSuccessListener(onSuccess)
             inProgress.value = false
+        }.addOnFailureListener {
+            handleException(it)
         }
-            .addOnFailureListener {
-                handleException(it)
-            }
     }
 
 
@@ -180,6 +193,7 @@ class ChatViewModel @Inject constructor(
                 val user = value.toObject<UserData>()
                 userData.value = user
                 inProgress.value = false
+                populateChats()
             }
         }
     }
@@ -194,5 +208,82 @@ class ChatViewModel @Inject constructor(
         inProgress.value = false
     }
 
+    fun onAddChat(number: String) {
+        if (number.isEmpty() || !number.isDigitsOnly()) {
+            handleException(customMessage = "Number must contain only digits")
+        } else {
+            db.collection(COLLECTION_CHAT).where(
+                Filter.or(
+                    Filter.and(
+                        Filter.equalTo("receiver", number),
+                        Filter.equalTo("sender", userData.value?.number)
+                    ), Filter.and(
+                        Filter.equalTo("receiver", userData.value?.number),
+                        Filter.equalTo("sender", number)
+                    )
+                )
+            ).get().addOnSuccessListener {
+                if (it.isEmpty) {
+                    db.collection(COLLECTION_USER).whereEqualTo("number", number).get()
+                        .addOnSuccessListener {
+                            if (it.isEmpty) {
+                                handleException(customMessage = "Can't retrieve user with number $number")
+                            } else {
+                                val chatPartner = it.toObjects<UserData>()[0]
+                                val id = db.collection(COLLECTION_CHAT).document().id
+
+                                val chat = ChatDate(
+                                    chatId = id, sender = ChatUser(
+                                        userId = userData.value?.userId,
+                                        name = userData.value?.name,
+                                        number = userData.value?.number,
+                                        imageUrl = userData.value?.imageUrl
+                                    ), receiver = ChatUser(
+                                        userId = chatPartner.userId,
+                                        name = chatPartner.name,
+                                        number = chatPartner.number,
+                                        imageUrl = chatPartner.imageUrl
+                                    )
+                                )
+                                db.collection(COLLECTION_CHAT).document(id).set(chat)
+                            }
+                        }.addOnFailureListener { exception ->
+                            handleException(exception = exception)
+                        }
+                } else {
+                    handleException(customMessage = "Chat already exists")
+                }
+            }
+        }
+    }
+
+    private fun populateChats() {
+        inProgressChat.value = true
+        db.collection(COLLECTION_CHAT).where(
+            Filter.or(
+                Filter.equalTo("sender.userId", userData.value?.userId),
+                Filter.equalTo("receiver.userId", userData.value?.userId),
+            )
+        ).addSnapshotListener { value, error ->
+            if (error != null) handleException(error)
+            if (value != null) chats.value =
+                value.documents.mapNotNull { it.toObject<ChatDate>() }
+            inProgressChat.value = false
+
+
+        }
+    }
+
+
+    fun onSendReply(chatId: String, message: String) {
+        val time = Calendar.getInstance().time.toString()
+        val msg = Message(userData.value?.userId, message = message, timestamp = time)
+
+        db.collection(COLLECTION_CHAT).document(chatId)
+            .collection(COLLECTION_MESSAGES)
+            .document()
+            .set(msg)
+
+    }
 
 }

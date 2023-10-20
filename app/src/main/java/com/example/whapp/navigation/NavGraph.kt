@@ -39,7 +39,7 @@ fun NavGraph() {
             ProfileScreen(navController = navController, chatViewModel = chatViewModel)
         }
         composable(route = AllScreens.ChatListScreen.name) {
-            ChatListScreen(navController = navController)
+            ChatListScreen(navController = navController, chatViewModel = chatViewModel)
         }
         composable(
             route = AllScreens.SingleChat.name + "/{chatId}",
