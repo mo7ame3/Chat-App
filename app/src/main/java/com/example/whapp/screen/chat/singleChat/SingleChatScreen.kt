@@ -1,5 +1,6 @@
 package com.example.whapp.screen.chat.singleChat
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,9 +44,13 @@ import com.example.whapp.screen.ChatViewModel
 @Composable
 fun SingleChatScreen(chatId: String, navController: NavController, chatViewModel: ChatViewModel) {
 
-//    LaunchedEffect(key1 = Unit) {
-//
-//    }
+    LaunchedEffect(key1 = Unit) {
+        chatViewModel.populateChat(chatId)
+    }
+
+    BackHandler {
+        chatViewModel.depopulateChat()
+    }
 
     val currentChat = chatViewModel.chats.value.first { it.chatId == chatId }
     val myUser = chatViewModel.userData.value
@@ -56,6 +62,7 @@ fun SingleChatScreen(chatId: String, navController: NavController, chatViewModel
     Column(modifier = Modifier.fillMaxSize()) {
         ChatHeader(name = chatUser.name ?: "", imageUrl = chatUser.imageUrl ?: "") {
             navController.popBackStack()
+            chatViewModel.depopulateChat()
         }
 
         Messages(

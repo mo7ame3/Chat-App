@@ -290,25 +290,25 @@ class ChatViewModel @Inject constructor(
     }
 
 
-//    fun populateChat(chatId: String) {
-//        inProgressChatMessages.value = true
-//        currentChatMessagesListener = db.collection(COLLECTION_CHAT)
-//            .document(chatId)
-//            .collection(COLLECTION_MESSAGES)
-//            .addSnapshotListener { value, error ->
-//                if (error != null)
-//                    handleException(exception = error)
-//                if (value != null)
-//                    chatMessages.value = value.documents
-//                        .mapNotNull { it.toObject<Message>() }
-//                        .sortedBy { it.timestamp }
-//                inProgressChatMessages.value = false
-//            }
-//    }
-//
-//    fun depopulateChat() {
-//        chatMessages.value = listOf()
-//        currentChatMessagesListener = null
-//    }
+    fun populateChat(chatId: String) {
+        inProgressChatMessages.value = true
+        currentChatMessagesListener = db.collection(COLLECTION_CHAT)
+            .document(chatId)
+            .collection(COLLECTION_MESSAGES)
+            .addSnapshotListener { value, error ->
+                if (error != null)
+                    handleException(exception = error)
+                if (value != null)
+                    chatMessages.value = value.documents
+                        .mapNotNull { it.toObject<Message>() }
+                        .sortedBy { it.timestamp }
+                inProgressChatMessages.value = false
+            }
+    }
+
+    fun depopulateChat() {
+        chatMessages.value = listOf()
+        currentChatMessagesListener = null
+    }
 
 }
