@@ -33,6 +33,7 @@ import androidx.navigation.NavController
 import com.example.whapp.components.BottomNavigationItem
 import com.example.whapp.components.BottomNavigationMenu
 import com.example.whapp.components.CommonRow
+import com.example.whapp.components.TitleText
 import com.example.whapp.navigation.AllScreens
 import com.example.whapp.screen.ChatViewModel
 import com.example.whapp.util.CommonProgressSpinner
@@ -66,6 +67,7 @@ fun ChatListScreen(navController: NavController, chatViewModel: ChatViewModel) {
                     .fillMaxSize()
                     .padding(it)
             ) {
+                TitleText(txt = "Chats")
                 if (chats.isEmpty()) {
                     Column(
                         modifier = Modifier
@@ -76,7 +78,8 @@ fun ChatListScreen(navController: NavController, chatViewModel: ChatViewModel) {
                     ) {
                         Text(text = "No chats available")
                     }
-                } else {
+                } 
+                else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(chats) { chat ->
 

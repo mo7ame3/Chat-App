@@ -213,3 +213,14 @@ fun CommonRow(imageUrl: String?, name: String?, onItemClick: () -> Unit) {
 
     }
 }
+
+
+@Composable
+fun TitleText(txt: String) {
+    Text(
+        text = txt,
+        fontWeight = FontWeight.Bold,
+        fontSize = 35.sp,
+        modifier = Modifier.padding(8.dp)
+    )
+}

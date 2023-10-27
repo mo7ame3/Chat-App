@@ -43,7 +43,7 @@ fun BottomNavigationMenu(selectedItem: BottomNavigationItem, navController: NavC
                     .padding(4.dp)
                     .weight(1f)
                     .clickable {
-                            navigateTo(navController, item.navDestination)
+                        navigateTo(navController, item.navDestination)
                     },
                 colorFilter = if (item == selectedItem) ColorFilter.tint(Color.Black) else ColorFilter.tint(
                     Color.Gray

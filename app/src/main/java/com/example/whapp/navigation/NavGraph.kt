@@ -54,17 +54,18 @@ fun NavGraph() {
             )
         }
         composable(route = AllScreens.StatusListScreen.name) {
-            StatusListScreen(navController = navController)
+            StatusListScreen(navController = navController, chatViewModel = chatViewModel)
         }
         composable(
-            route = AllScreens.SingleStatusScreen.name + "/{statusId}",
-            arguments = listOf(navArgument(name = "statusId") {
+            route = AllScreens.SingleStatusScreen.name + "/{userID}",
+            arguments = listOf(navArgument(name = "userID") {
                 type = NavType.StringType
             })
         ) { data ->
             SingleStatusScreen(
                 navController = navController,
-                statusId = data.arguments?.getString("statusId").toString()
+                userId = data.arguments?.getString("userID").toString(),
+                chatViewModel = chatViewModel
             )
         }
     }
